@@ -1,5 +1,8 @@
-# Duck toolkit
+# Monorepo toolkit
 
-This tool helps manage the Duck monorepo. Most notably, it helps replay commits from the monorepo onto the mirrors
-for each individual project. Some projects such as [rpassword](https://github.com/conradkleinespel/rpassword) have
-their own repository which needs to stay up to date.
+This tool is part of something I used to manage a monorepo of open source projects. It was previously used to replay
+commit history from a monorepo onto mirrors of single repositories. This made it possible to publish a non-monorepo
+version of all of the projects contained within the monorepo.
+
+It turns out my open-source monorepo was not usable by outside contributors. So I decided to stop using the monorepo
+for now, but the tooling remains. Maybe I will come back to it later.
