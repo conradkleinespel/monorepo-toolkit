@@ -1,12 +1,12 @@
 [package]
-name = "dt"
+name = "mt"
 version = "0.1.0"
 authors = ["Conrad Kleinespel <conradk@conradk.com>"]
 edition = "2018"
 license = "Apache-2.0"
-repository = "https://github.com/conradkleinespel/duck"
-homepage = "https://github.com/conradkleinespel/duck"
-description = "Tools to manage the duck repository"
+repository = "https://github.com/conradkleinespel/monorepo-toolkit"
+homepage = "https://github.com/conradkleinespel/monorepo-toolkit"
+description = "Tools to manage a monorepo"
 
 [dependencies]
 clap = "4.5"

@@ -16,7 +16,7 @@ fn main() {
         false,
     );
 
-    let matches = Command::new("dt")
+    let matches = Command::new("mt")
         .help_expected(true)
         .disable_help_subcommand(true)
         .subcommand_required(true)
