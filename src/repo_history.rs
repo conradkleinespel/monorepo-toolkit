@@ -15,20 +15,20 @@ pub fn command_repo_history(
     dry_run: bool,
     subcommand_matches: &ArgMatches,
 ) -> Result<(), String> {
-    let duck_repo_url = subcommand_matches
-        .get_one::<String>("duck-repo")
+    let monorepo_repo_url = subcommand_matches
+        .get_one::<String>("monorepo-repo")
         .map(|s| s.to_string())
-        .unwrap_or("https://github.com/conradkleinespel/duck.git".to_string());
-    let duck_branch = subcommand_matches
-        .get_one::<String>("duck-branch")
+        .unwrap();
+    let monorepo_branch = subcommand_matches
+        .get_one::<String>("monorepo-branch")
         .map(|s| s.to_string())
-        .unwrap_or("master".to_string());
-    let project_name_in_duck = subcommand_matches
-        .get_one::<String>("project-name-in-duck")
+        .unwrap_or("main".to_string());
+    let project_name_in_mt = subcommand_matches
+        .get_one::<String>("project-name-in-mt")
         .unwrap();
     let default_project_repo_url = format!(
         "https://github.com/conradkleinespel/{}.git",
-        project_name_in_duck
+        project_name_in_mt
     );
     let project_repo_url = subcommand_matches
         .get_one::<String>("project-repo")
@@ -37,7 +37,7 @@ pub fn command_repo_history(
     let project_branch = subcommand_matches
         .get_one::<String>("project-branch")
         .map(|s| s.to_string())
-        .unwrap_or("master".to_string());
+        .unwrap_or("main".to_string());
     let skip_time_filter = subcommand_matches.get_flag("skip-time-filter");
 
     let git_tmp_dir = tempfile::tempdir().unwrap();
@@ -45,18 +45,18 @@ pub fn command_repo_history(
 
     log::info!("creating tmp directory {}", git_tmp_dir_path.display());
 
-    let duck_path = git_tmp_dir_path.join("duck");
+    let monorepo_path = git_tmp_dir_path.join("mt");
     let project_path = git_tmp_dir_path.join("project");
 
     let (git_username, git_password) = get_username_and_password(io).unwrap();
 
-    log::info!("cloning {}", duck_repo_url);
-    let mut duck_repo = Repository::clone(
-        duck_repo_url.as_str(), duck_path.as_path(),
+    log::info!("cloning {}", monorepo_repo_url);
+    let mut monorepo_repo = Repository::clone(
+        monorepo_repo_url.as_str(), monorepo_path.as_path(),
     ).unwrap();
     checkout_branch(
-        &mut duck_repo,
-        duck_branch.as_str(),
+        &mut monorepo_repo,
+        monorepo_branch.as_str(),
         git_username.as_str(),
         git_password.as_str(),
     )
@@ -74,8 +74,8 @@ pub fn command_repo_history(
         .unwrap();
 
     match replay_all_commits(
-        project_name_in_duck,
-        &mut duck_repo,
+        project_name_in_mt,
+        &mut monorepo_repo,
         &mut project_repo,
         project_branch.as_str(),
         project_path.as_path(),
@@ -103,8 +103,8 @@ fn push_replayed_repository_branch(project_repo: &mut Repository, git_username: 
         .peel_to_commit()
         .unwrap()
         .id();
-    let branch_name = format!("duck-sync-{}", last_commit_id);
-    let push_refspec = format!("refs/heads/master:refs/heads/{}", branch_name);
+    let branch_name = format!("monorepo-sync-{}", last_commit_id);
+    let push_refspec = format!("refs/heads/main:refs/heads/{}", branch_name);
     log::info!("pushing refspec {}", push_refspec);
     let mut remote_callbacks = RemoteCallbacks::new();
     remote_callbacks.credentials(|_url, _username_from_url, _allowed_types| {
@@ -124,8 +124,8 @@ fn push_replayed_repository_branch(project_repo: &mut Repository, git_username: 
 }
 
 fn replay_all_commits(
-    project_name_in_duck: &str,
-    duck_repo: &mut Repository,
+    project_name_in_mt: &str,
+    monorepo_repo: &mut Repository,
     project_repo: &mut Repository,
     project_branch: &str,
     project_path: &Path,
@@ -157,9 +157,9 @@ fn replay_all_commits(
         NaiveDateTime::from_timestamp_opt(project_repo_last_commit_time, 0)
     );
 
-    let project_directory = PathBuf::new().join("projects").join(project_name_in_duck);
+    let project_directory = PathBuf::new().join("projects").join(project_name_in_mt);
     let commits = get_commits_to_replay(
-        duck_repo,
+        monorepo_repo,
         project_directory.as_path(),
         skip_time_filter,
         project_repo_last_commit_time,
@@ -167,11 +167,11 @@ fn replay_all_commits(
 
     for commit in commits {
         log::info!("checking out commit {} {:?}", commit.id(), commit.message());
-        duck_repo.set_head_detached(commit.id()).unwrap();
-        duck_repo.checkout_head(Some(CheckoutBuilder::new().force())).unwrap();
+        monorepo_repo.set_head_detached(commit.id()).unwrap();
+        monorepo_repo.checkout_head(Some(CheckoutBuilder::new().force())).unwrap();
 
         if replay_commit(
-            duck_repo.path().parent().unwrap().join("projects").join(project_name_in_duck).as_path(),
+            monorepo_repo.path().parent().unwrap().join("projects").join(project_name_in_mt).as_path(),
             project_repo,
             project_path,
             commit,
@@ -183,12 +183,12 @@ fn replay_all_commits(
     Ok(num_commits_replayed)
 }
 
-fn replay_commit(duck_project_path: &Path, project_repo: &mut Repository, project_path: &Path, commit: Commit) -> bool {
+fn replay_commit(monorepo_project_path: &Path, project_repo: &mut Repository, project_path: &Path, commit: Commit) -> bool {
     let last_commit = project_repo.head().unwrap().peel_to_commit().unwrap();
 
-    log::info!("syncing files from duck:{:?} to project:{:?}", duck_project_path, project_path);
+    log::info!("syncing files from mt:{:?} to project:{:?}", monorepo_project_path, project_path);
     sync_files(
-        duck_project_path,
+        monorepo_project_path,
         project_path,
     )
         .unwrap();
@@ -224,7 +224,7 @@ fn replay_commit(duck_project_path: &Path, project_repo: &mut Repository, projec
         )
         .unwrap();
     project_repo.branch(
-        "master",
+        "main",
         &project_repo.find_commit(new_commit_oid).unwrap(),
         true,
     ).unwrap();
@@ -234,17 +234,17 @@ fn replay_commit(duck_project_path: &Path, project_repo: &mut Repository, projec
 }
 
 fn get_commits_to_replay<'a>(
-    duck_repo: &'a Repository,
+    monorepo_repo: &'a Repository,
     project_directory: &'a Path,
     skip_time_filter: bool,
     project_repo_last_commit_time: i64
 ) -> FilterMap<Revwalk<'a>, Box<dyn FnMut(Result<Oid, Error>) -> Option<Commit<'a>> + 'a>> {
-    let mut revwalk = duck_repo.revwalk().unwrap();
+    let mut revwalk = monorepo_repo.revwalk().unwrap();
     revwalk.set_sorting(Sort::TIME | Sort::REVERSE).unwrap();
     revwalk.push_head().unwrap();
 
     revwalk.filter_map(Box::new(move |oid| {
-        let commit = duck_repo.find_commit(oid.unwrap()).unwrap();
+        let commit = monorepo_repo.find_commit(oid.unwrap()).unwrap();
 
         filter_commit(
             commit,
@@ -339,8 +339,8 @@ fn checkout_branch(
 
 fn get_username_and_password(io: &mut RegularInputOutput) -> Result<(String, String), Error> {
     let git_username =
-        std::env::var("DUCK_USERNAME").unwrap_or_else(|_| io.prompt_line("Username: ").unwrap());
-    let git_password = std::env::var("DUCK_PASSWORD").unwrap_or_else(|_| {
+        std::env::var("GIT_USERNAME").unwrap_or_else(|_| io.prompt_line("Username: ").unwrap());
+    let git_password = std::env::var("GIT_PASSWORD").unwrap_or_else(|_| {
         io.prompt_password("Access token: ")
             .map(|s| s.into_inner())
             .unwrap()

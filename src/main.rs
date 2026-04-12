@@ -37,25 +37,26 @@ fn main() {
                 .help("Performs a trial run with no changes made")
                 .global(true),
         )
-        .about("Tools to manage the duck git repository")
+        .about("Tools to manage the mt git repository")
         .version(env!("CARGO_PKG_VERSION"))
         .subcommand(
             Command::new("repo-history")
-                .about("Replay history from Duck onto a single project git repository")
+                .about("Replay history from mt onto a single project git repository")
                 .arg(
-                    Arg::new("project-name-in-duck")
+                    Arg::new("project-name-in-mt")
                         .required(true)
-                        .help("The name of the project in Duck"),
+                        .help("The name of the project in mt"),
                 )
                 .arg(
-                    Arg::new("duck-repo")
-                        .long("duck-repo")
-                        .help("HTTPS url to Duck's Git repository"),
+                    Arg::new("monorepo-repo")
+                        .required(true)
+                        .long("monorepo-repo")
+                        .help("HTTPS url to mt's Git repository"),
                 )
                 .arg(
-                    Arg::new("duck-branch")
-                        .long("duck-branch")
-                        .help("Name of the branch to checkout for Duck before syncing"),
+                    Arg::new("monorepo-branch")
+                        .long("monorepo-branch")
+                        .help("Name of the branch to checkout for mt before syncing"),
                 )
                 .arg(
                     Arg::new("project-repo")
