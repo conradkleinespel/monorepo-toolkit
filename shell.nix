@@ -3,8 +3,7 @@ let
 in
   pkgs.mkShell {
     buildInputs = with pkgs; [
-      cargo
-      rustc
+      rustup
       pkg-config
       openssl
       libgit2
@@ -12,6 +11,7 @@ in
     ];
 
     shellHook = ''
-      export RUST_LOG=info
+      rustup default stable
+      rustup component add rust-src
     '';
   }
